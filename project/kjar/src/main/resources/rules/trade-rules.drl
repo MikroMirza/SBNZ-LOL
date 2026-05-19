@@ -1,0 +1,144 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Champion.PlayerType;
+import com.lol.model.Champion.ChampionType;
+import com.lol.model.GameState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+rule "T1 - Engage Window Ult Ready"
+    salience 40
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent > 50, ultCooldown == 0, level >= 6) from $state.ourMid
+        $enemy : Champion(hpPercent < 40) from $state.enemyMid
+    then
+        insert(new Recommendation("T1", "Enemy has low HP, engage window", 4,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T2 - Avoid Trade Low HP"
+    salience 30
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent < 30) from $state.ourMid
+        $enemy : Champion($enemyLvl : level) from $state.enemyMid
+        Champion(level <= $enemyLvl) from $state.ourMid
+    then
+        insert(new Recommendation("T2", "Our HP is low, don't trade, keep distance", 3,
+            Category.TRADE, ActionState.BACKING));
+end
+
+rule "T3 - Trade Power Advantage"
+    salience 25
+    when
+        $state : GameState()
+        $our   : Champion($ourPow : powerMult) from $state.ourMid
+        $enemy : Champion(powerMult < $ourPow) from $state.enemyMid
+    then
+        insert(new Recommendation("T3", "You have power advantage, trade", 2,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T4 - Trade Level Advantage"
+    salience 25
+    when
+        $state : GameState()
+        $our   : Champion($ourLvl : level, $ourHp : hpPercent, manaPercent > 50) from $state.ourMid
+        $enemy : Champion(level < $ourLvl, $enemyHp : hpPercent) from $state.enemyMid
+        eval($ourHp >= $enemyHp - 20)
+    then
+        insert(new Recommendation("T4", "You have level advantage + enough mana, trade", 2,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T5 - Avoid Trade No Mana"
+    salience 35
+    when
+        $state : GameState()
+        $our   : Champion(manaPercent < 20) from $state.ourMid
+        $enemy : Champion(manaPercent > 30) from $state.enemyMid
+    then
+        insert(new Recommendation("T5", "Too little mana, don't trade", 3,
+            Category.TRADE, ActionState.BACKING));
+end
+
+rule "T6 - Trade Enemy No Mana"
+    salience 30
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent > 60) from $state.ourMid
+        $enemy : Champion(manaPercent < 20) from $state.enemyMid
+    then
+        insert(new Recommendation("T6", "ENEMY HAS NO MAAANA, trade", 3,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T7 - Trade Window Cooldown Advantage"
+    salience 28
+    when
+        $state : GameState()
+        $our   : Champion(cooldownInt <= 2, hpPercent > 50) from $state.ourMid
+        $enemy : Champion(cooldownInt > 3) from $state.enemyMid
+    then
+        insert(new Recommendation("T7", "You have your ability up, the enemy doesn't, trade", 3,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T8 - Passive Player Contest"
+    salience 20
+    when
+        $state : GameState()
+        $our   : Champion(playerType == PlayerType.PASSIVE, $ourHp : hpPercent) from $state.ourMid
+        $enemy : Champion(hpPercent < 25, $enemyHp : hpPercent) from $state.enemyMid
+        eval($ourHp >= $enemyHp * 2)
+    then
+        insert(new Recommendation("T8", "Enemy is really low, contest the kill", 2,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T9 - Level 6 Powerspike"
+    salience 38
+    when
+        $state : GameState()
+        $our   : Champion(level == 6, hpPercent > 70) from $state.ourMid
+        $enemy : Champion(level < 6) from $state.enemyMid
+    then
+        insert(new Recommendation("T9", "You have level 6, engage window", 4,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "T10 - Avoid Trade Jungler Nearby"
+    salience 45
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent < 50) from $state.ourMid
+        $jg    : Champion(currentPosition == Champion.Position.UNKNOWN,
+                          lastSeenTimer < 30) from $state.enemyJungler
+    then
+        insert(new Recommendation("T10", "Enemy jungler seen around midlane in past 30 seconds, don't trade", 5,
+            Category.TRADE, ActionState.BACKING));
+end
+
+rule "T11 - Avoid Trade Missing Enemies"
+    salience 40
+    when
+        $state : GameState()
+        $jg    : Champion(lastSeenTimer > 20) from $state.enemyJungler
+    then
+        insert(new Recommendation("T11", "Enemy jungler hasn't been seen for more than 20s, don't trade", 2,
+            Category.TRADE, ActionState.LANING));
+end
+
+rule "T12 - Trade Enemy Ability On Cooldown In Range"
+    salience 27
+    when
+        $state : GameState()
+        $our   : Champion() from $state.ourMid
+        $enemy : Champion(cooldownInt > 4) from $state.enemyMid
+    then
+        insert(new Recommendation("T12", "Enemy has cooldown on ability, trade ", 3,
+            Category.TRADE, ActionState.FIGHTING));
+end

@@ -1,0 +1,82 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Dragon;
+import com.lol.model.GameState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+rule "D1 - Prepare For Dragon"
+    salience 30
+    when
+        $state  : GameState()
+        $dragon : Dragon(timer <= 70, timer >= 40) from $state.dragon
+        $our    : Champion(hpPercent > 70) from $state.ourMid
+    then
+        insert(new Recommendation("D1", "Dragon is spawning soon and your HP is alright, go towards drake", 3,
+            Category.DRAGON, ActionState.ROAMING));
+end
+
+rule "D2 - Take Dragon Free"
+    salience 38
+    when
+        $state  : GameState(teamNearDragon >= 3, enemyBotHpPercent < 30)
+        $dragon : Dragon(timer <= 40) from $state.dragon
+    then
+        insert(new Recommendation("D2", "You have a lot of people around the drake, and enemy bot is low HP, contest drake", 4,
+            Category.DRAGON, ActionState.FIGHTING));
+end
+
+rule "D3 - Recall Before Dragon Low HP"
+    salience 42
+    when
+        $state  : GameState()
+        $dragon : Dragon(timer <= 40) from $state.dragon
+        $our    : Champion(hpPercent < 40) from $state.ourMid
+    then
+        insert(new Recommendation("D3", "Your HP is low for soon to be dragon fight, recall", 4,
+            Category.DRAGON, ActionState.RECALLING));
+end
+
+rule "D4 - Ideal Dragon Situation"
+    salience 40
+    when
+        $state  : GameState()
+        $dragon : Dragon(timer <= 70) from $state.dragon
+        $our    : Champion($ourPow : powerMult) from $state.ourMid
+        $enemy  : Champion(isDead == true, powerMult <= $ourPow) from $state.enemyMid
+    then
+        insert(new Recommendation("D4", "Enemy mid is dead and you have more power value, contest drake", 4,
+            Category.DRAGON, ActionState.FIGHTING));
+end
+
+rule "D5 - Dont Contest Dragon Outnumbered"
+    salience 45
+    when
+        $state : GameState(teamNearDragon < 3, enemyTeamNearDragon >= 3)
+    then
+        insert(new Recommendation("D5", "Enemy has more champions near the dragon, don't contest, fall back", 5,
+            Category.DRAGON, ActionState.BACKING));
+end
+
+rule "D6 - Low Mana Before Dragon"
+    salience 35
+    when
+        $state  : GameState()
+        $dragon : Dragon(timer <= 30) from $state.dragon
+        $our    : Champion(manaPercent < 30) from $state.ourMid
+    then
+        insert(new Recommendation("D6", "Dragon is too low but you don't have mana, recall or figure out the state of your team", 3,
+            Category.DRAGON, ActionState.RECALLING));
+end
+
+rule "D7 - Dragon Not Priority"
+    salience 10
+    when
+        $state  : GameState()
+        $dragon : Dragon(timer > 120) from $state.dragon
+    then
+        insert(new Recommendation("D7", "Dragon is not a priority, 2+ minutes spawn", 1,
+            Category.DRAGON, ActionState.LANING));
+end

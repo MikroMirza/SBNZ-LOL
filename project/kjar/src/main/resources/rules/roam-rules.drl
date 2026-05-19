@@ -1,0 +1,124 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Champion.PlayerType;
+import com.lol.model.Champion.Position;
+import com.lol.model.GameState;
+import com.lol.model.GameState.WaveState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+rule "R1 - Consider Roam Wave Pushed"
+    salience 20
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(hpPercent > 60,
+                          gold < GameState.POWERSPIKE_MID) from $state.ourMid
+    then
+        insert(new Recommendation("R1", "You pushed the wave and don't have enough gold to get a proper back, think about roaming", 2,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R2 - Roam Enemy Mid Dead"
+    salience 35
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $enemy : Champion(isDead == true) from $state.enemyMid
+    then
+        insert(new Recommendation("R2", "Enemy mid is down and the wave is pushed, ROAM", 4,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R3 - Roam Bot Lane Kill Potential"
+    salience 30
+    when
+        $state : GameState(enemyBotHpPercent <= 50,
+                           ourBotSideNumbers >= enemyBotSideNumbers)
+    then
+        insert(new Recommendation("R3", "Enemy botlane is low and you have numerical superiority, roam", 2,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R4 - Push Tower Enemy Roamed Passive"
+    salience 28
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(playerType == PlayerType.PASSIVE) from $state.ourMid
+        $enemy : Champion(currentPosition != Position.MIDLANE) from $state.enemyMid
+    then
+        insert(new Recommendation("R4", "Enemy roamed and your player type is PASSIVE- stay", 3,
+            Category.ROAM, ActionState.LANING));
+end
+
+rule "R4b - Push Tower Enemy Roamed Balanced"
+    salience 28
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(playerType == PlayerType.BALANCED) from $state.ourMid
+        $enemy : Champion(currentPosition != Position.MIDLANE) from $state.enemyMid
+    then
+        insert(new Recommendation("R4b", "Enemy roamed and wave is pushed, hit tower", 3,
+            Category.ROAM, ActionState.LANING));
+end
+
+rule "R5 - Follow Enemy Roam Aggressive"
+    salience 28
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(playerType == PlayerType.AGGRESSIVE) from $state.ourMid
+        $enemy : Champion(currentPosition != Position.MIDLANE) from $state.enemyMid
+    then
+        insert(new Recommendation("R5", "Enemy roamed, follow if you are aggressive player type", 3,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R6 - Dont Roam Wave Neutral"
+    salience 15
+    when
+        $state : GameState(waveState == WaveState.NEUTRAL)
+        $enemy : Champion(currentPosition != Position.MIDLANE) from $state.enemyMid
+    then
+        insert(new Recommendation("R6", "Enemy is gone but wave state is neutral, roam is not recommended", 1,
+            Category.ROAM, ActionState.LANING));
+end
+
+rule "R7 - Roam Top Ally In Danger"
+    salience 40
+    when
+        $state : GameState(allyTopHpPercent < 20,
+                           waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(level >= 6) from $state.ourMid
+    then
+        insert(new Recommendation("R7", "Toplane ally is very low, the wave is pushed and you have ult, roam", 4,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R8 - Roam Snowball Aggressive"
+    salience 30
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $our   : Champion(playerType == PlayerType.AGGRESSIVE, kills >= 2) from $state.ourMid
+    then
+        insert(new Recommendation("R8", "If you have kill advantage, roam", 3,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "R9 - Dont Roam Wave Under Our Tower"
+    salience 20
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_OUR_TOWER)
+        $enemy : Champion(isDead == false) from $state.enemyMid
+    then
+        insert(new Recommendation("R9", "Wave is pushed to our tower and enemy mid is alive, don't roam", 2,
+            Category.ROAM, ActionState.LANING));
+end
+
+rule "R10 - Laning Phase Over"
+    salience 10
+    when
+        $state : GameState(timer >= 840)
+    then
+        insert(new Recommendation("R10", "Laning phase is over, don't roam anymore, focus on whole map", 1,
+            Category.ROAM, ActionState.LANING));
+end

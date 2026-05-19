@@ -1,0 +1,77 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Champion.ChampionType;
+import com.lol.model.Champion.Position;
+import com.lol.model.GameState;
+import com.lol.model.GameState.WaveState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+rule "P1 - Critical HP Recall"
+    salience 50
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent < 20) from $state.ourMid
+    then
+        insert(new Recommendation("P1", "HP Is extremely low, get to the tower and recall", 5,
+            Category.RECALL, ActionState.RECALLING));
+end
+
+rule "P2 - Recall Gold Spike"
+    salience 22
+    when
+        $state : GameState(waveState != WaveState.PUSHED_TO_OUR_TOWER)
+        $our   : Champion(hpPercent < 50, gold >= GameState.POWERSPIKE_EARLY) from $state.ourMid
+    then
+        insert(new Recommendation("P2", "You have enough gold and you are somewhat low on HP, recall", 2,
+            Category.RECALL, ActionState.RECALLING));
+end
+
+rule "P3 - Back Off Jungler Spotted"
+    salience 45
+    when
+        $state : GameState()
+        $our   : Champion(hpPercent < 60) from $state.ourMid
+        $jg    : Champion(currentPosition == Position.UNKNOWN,
+                          lastSeenTimer < 20) from $state.enemyJungler
+    then
+        insert(new Recommendation("P3", "Enemy jungler is seen around mid, fall back", 4,
+            Category.RECALL, ActionState.BACKING));
+end
+
+rule "P4 - Recall No Mana Mage"
+    salience 30
+    when
+        $state : GameState()
+        $our   : Champion(manaPercent < 15,
+                          championType == ChampionType.MAGE) from $state.ourMid
+        $enemy : Champion(hpPercent > 60) from $state.enemyMid
+    then
+        insert(new Recommendation("P4", "You have low mana as mage and enemy is healthy, recall, you have no impact on the map", 3,
+            Category.RECALL, ActionState.RECALLING));
+end
+
+rule "P5 - Dont Farm Tower Enemy Nearby"
+    salience 48
+    when
+        $state : GameState(waveState == WaveState.PUSHED_TO_OUR_TOWER)
+        $our   : Champion(hpPercent < 20) from $state.ourMid
+        $enemy : Champion(isDead == false,
+                          currentPosition == Champion.Position.MIDLANE) from $state.enemyMid
+    then
+        insert(new Recommendation("P5", "Wave is beneath our tower, your HP is critical and enemy is on the lane, do NOT farm, recall immediately!", 5,
+            Category.RECALL, ActionState.RECALLING));
+end
+
+rule "P6 - Play Safe Level Deficit"
+    salience 35
+    when
+        $state : GameState()
+        $our   : Champion($ourLvl : level) from $state.ourMid
+        $enemy : Champion(level > $ourLvl + 1) from $state.enemyMid
+    then
+        insert(new Recommendation("P6", "Enemy is higher level than you, play passively.", 3,
+            Category.RECALL, ActionState.BACKING));
+end

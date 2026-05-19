@@ -1,0 +1,40 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Champion.Position;
+import com.lol.model.GameState;
+import com.lol.model.GameState.WaveState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+rule "CS1 - CS Below Average"
+    salience 18
+    when
+        $state : GameState($timer : timer, timer > 0)
+        $our   : Champion($cs : csScore) from $state.ourMid
+        eval($timer > 0 && (double)$cs / ($timer / 60.0) < 8.0)
+    then
+        insert(new Recommendation("CS1", "CS below 8 CSP, focus on farm", 2,
+            Category.CS, ActionState.LANING));
+end
+
+rule "CS2 - Far From Wave Losing CS"
+    salience 20
+    when
+        $state : GameState(minionCount > 6)
+        $our   : Champion(currentPosition != Position.MIDLANE) from $state.ourMid
+    then
+        insert(new Recommendation("CS2", "More than 6 minions on the wave, return back", 2,
+            Category.CS, ActionState.LANING));
+end
+
+rule "CS3 - Freeze Near Enemy Tower Dangerous"
+    salience 25
+    when
+        $state : GameState(waveState == WaveState.FREEZING_NEAR_ENEMY_TOWER)
+        $jg    : Champion(currentPosition == Position.UNKNOWN) from $state.enemyJungler
+    then
+        insert(new Recommendation("CS3", "Wave is frozen near enemy tower, push it out to avoid a gank", 3,
+            Category.CS, ActionState.LANING));
+end

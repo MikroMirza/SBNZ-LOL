@@ -1,0 +1,75 @@
+package com.lol.rules;
+
+import com.lol.model.Champion;
+import com.lol.model.Champion.PlayerType;
+import com.lol.model.Dragon;
+import com.lol.model.GameState;
+import com.lol.model.GameState.WaveState;
+import com.lol.model.Recommendation;
+import com.lol.model.Recommendation.Category;
+import com.lol.model.Recommendation.ActionState;
+
+declare EngageWindow
+    timestamp : int
+end
+
+declare SuccessfulKill
+    timestamp : int
+end
+
+declare PushWaveOpportunity
+    timestamp : int
+end
+
+rule "FC1 - Detect Engage Window"
+    salience 50
+    when
+        $state : GameState($t : timer)
+        $our   : Champion(ultCooldown <= 5, level >= 6) from $state.ourMid
+        $enemy : Champion(hpPercent <= 35) from $state.enemyMid
+        not EngageWindow()
+    then
+        insert(new EngageWindow($t));
+        insert(new Recommendation("FC1", "[Chain L1] Engage window, enemy HP is low, ult ready", 4,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "FC2 - Aggressive Commits To Kill"
+    salience 48
+    when
+        $state : GameState($t : timer)
+        $ew    : EngageWindow()
+        $our   : Champion(playerType == PlayerType.AGGRESSIVE) from $state.ourMid
+        not SuccessfulKill()
+    then
+        retract($ew);
+        insert(new SuccessfulKill($t));
+        insert(new Recommendation("FC2", "[Chain L2] Aggressive player type takes the risk and achieves a kill", 4,
+            Category.TRADE, ActionState.FIGHTING));
+end
+
+rule "FC3 - After Kill Push Wave"
+    salience 46
+    when
+        $state : GameState($t : timer, waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+        $sk    : SuccessfulKill()
+        $enemy : Champion(isDead == true) from $state.enemyMid
+        not PushWaveOpportunity()
+    then
+        retract($sk);
+        insert(new PushWaveOpportunity($t));
+        insert(new Recommendation("FC3", "[Chain L3] Wave is pushed and enemy is dead, roam", 4,
+            Category.ROAM, ActionState.ROAMING));
+end
+
+rule "FC4 - Roam To Dragon"
+    salience 44
+    when
+        $state  : GameState($t : timer, teamNearDragon >= 3, enemyBotHpPercent > 60)
+        $pwo    : PushWaveOpportunity()
+        $dragon : Dragon(timer <= 55) from $state.dragon
+    then
+        retract($pwo);
+        insert(new Recommendation("FC4", "[Chain L4] Roam window, dragon spawning soon and enemy bot is healthy, roam down", 4,
+            Category.DRAGON, ActionState.FIGHTING));
+end
