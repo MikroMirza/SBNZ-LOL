@@ -8,14 +8,14 @@ public class Map {
     private Lane[] lanes;
     private int[] size;
     private float speed;
-    private int minionSpawn;
+    private int minionSpawnTimer;
 
     public Map() {
         this.timer = 0;
         this.lanes = Lane.values();
-        this.size = new int[]{100, 100};
+        this.size = new int[]{128, 128};
         this.speed = 1.0f;
-        this.minionSpawn = 30;
+        this.minionSpawnTimer = 30;
     }
 
     public int getTimer() { return timer; }
@@ -30,8 +30,8 @@ public class Map {
     public float getSpeed() { return speed; }
     public void setSpeed(float speed) { this.speed = speed; }
 
-    public int getMinionSpawn() { return minionSpawn; }
-    public void setMinionSpawn(int minionSpawn) { this.minionSpawn = minionSpawn; }
+    public int getMinionSpawn() { return minionSpawnTimer; }
+    public void setMinionSpawn(int minionSpawn) { this.minionSpawnTimer = minionSpawn; }
 
     public String getFormattedTimer() {
         int minutes = timer / 60;

@@ -1,12 +1,12 @@
-package com.lol.rules;
+package com.ftn.sbnz.rules;
 
-import com.lol.model.Champion;
-import com.lol.model.Champion.PlayerType;
-import com.lol.model.Champion.ChampionType;
-import com.lol.model.GameState;
-import com.lol.model.Recommendation;
-import com.lol.model.Recommendation.Category;
-import com.lol.model.Recommendation.ActionState;
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Champion.PlayerType;
+import com.ftn.sbnz.model.Champion.ChampionType;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
 
 rule "T1 - Engage Window Ult Ready"
     salience 40
@@ -115,7 +115,7 @@ rule "T10 - Avoid Trade Jungler Nearby"
     when
         $state : GameState()
         $our   : Champion(hpPercent < 50) from $state.ourMid
-        $jg    : Champion(currentPosition == Champion.Position.UNKNOWN,
+        $jg    : Champion(currentPosition == Position.UNKNOWN,
                           lastSeenTimer < 30) from $state.enemyJungler
     then
         insert(new Recommendation("T10", "Enemy jungler seen around midlane in past 30 seconds, don't trade", 5,

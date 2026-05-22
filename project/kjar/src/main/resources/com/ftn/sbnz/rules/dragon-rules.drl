@@ -1,11 +1,11 @@
-package com.lol.rules;
+package com.ftn.sbnz.rules;
 
-import com.lol.model.Champion;
-import com.lol.model.Dragon;
-import com.lol.model.GameState;
-import com.lol.model.Recommendation;
-import com.lol.model.Recommendation.Category;
-import com.lol.model.Recommendation.ActionState;
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Dragon;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
 
 rule "D1 - Prepare For Dragon"
     salience 30
@@ -45,7 +45,7 @@ rule "D4 - Ideal Dragon Situation"
         $state  : GameState()
         $dragon : Dragon(timer <= 70) from $state.dragon
         $our    : Champion($ourPow : powerMult) from $state.ourMid
-        $enemy  : Champion(isDead == true, powerMult <= $ourPow) from $state.enemyMid
+        $enemy  : Champion(dead == true, powerMult <= $ourPow) from $state.enemyMid
     then
         insert(new Recommendation("D4", "Enemy mid is dead and you have more power value, contest drake", 4,
             Category.DRAGON, ActionState.FIGHTING));

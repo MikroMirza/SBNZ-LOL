@@ -1,13 +1,13 @@
-package com.lol.rules;
+package com.ftn.sbnz.rules;
 
-import com.lol.model.Champion;
-import com.lol.model.Champion.PlayerType;
-import com.lol.model.Champion.Position;
-import com.lol.model.GameState;
-import com.lol.model.GameState.WaveState;
-import com.lol.model.Recommendation;
-import com.lol.model.Recommendation.Category;
-import com.lol.model.Recommendation.ActionState;
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Champion.PlayerType;
+import com.ftn.sbnz.model.Position;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.GameState.WaveState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
 
 rule "R1 - Consider Roam Wave Pushed"
     salience 20
@@ -24,7 +24,7 @@ rule "R2 - Roam Enemy Mid Dead"
     salience 35
     when
         $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
-        $enemy : Champion(isDead == true) from $state.enemyMid
+        $enemy : Champion(dead == true) from $state.enemyMid
     then
         insert(new Recommendation("R2", "Enemy mid is down and the wave is pushed, ROAM", 4,
             Category.ROAM, ActionState.ROAMING));
@@ -108,7 +108,7 @@ rule "R9 - Dont Roam Wave Under Our Tower"
     salience 20
     when
         $state : GameState(waveState == WaveState.PUSHED_TO_OUR_TOWER)
-        $enemy : Champion(isDead == false) from $state.enemyMid
+        $enemy : Champion(dead == false) from $state.enemyMid
     then
         insert(new Recommendation("R9", "Wave is pushed to our tower and enemy mid is alive, don't roam", 2,
             Category.ROAM, ActionState.LANING));

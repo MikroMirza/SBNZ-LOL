@@ -1,0 +1,121 @@
+package com.ftn.sbnz.rules;
+
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Champion.PlayerType;
+import com.ftn.sbnz.model.Dragon;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.GameState.WaveState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
+import com.ftn.sbnz.model.ForwardChainState;
+
+declare EngageWindow
+    timestamp : int
+end
+
+declare KillWindow
+    timestamp : int
+end
+
+declare PushSituation
+    timestamp : int
+end
+
+declare PushWaveOpportunity
+    timestamp : int
+end
+
+declare SuccessfulKill
+    timestamp : int
+end
+	
+declare RoamDragonSituation
+    timestamp : int
+end
+
+rule "FC1 - Detect Engage Window"
+salience 50
+no-loop true
+when
+    $f : ForwardChainState(active == true)
+    $state : GameState($t : timer)
+    $our   : Champion(ultCooldown <= 5, level >= 6) from $state.ourMid
+    $enemy : Champion(hpPercent <= 35) from $state.enemyMid
+
+    not EngageWindow()
+then
+    insert(new EngageWindow($t));
+    insert(new Recommendation("FC1",
+        "[Chain L1] Engage window, enemy HP is low, ult ready",
+        4,
+        Category.TRADE,
+        ActionState.FIGHTING));
+    modify($f) { setActive(false); }
+end
+
+rule "FC2 - Aggressive Commits To Kill"
+salience 48
+no-loop true
+when
+    $ew    : EngageWindow()
+    $state : GameState($t : timer)
+    $our   : Champion(playerType == PlayerType.AGGRESSIVE) from $state.ourMid
+    $enemy : Champion() from $state.enemyMid
+
+    not SuccessfulKill()
+then
+    retract($ew);
+
+    $enemy.setDead(true);
+    $enemy.setHpPercent(0);
+    update($enemy);
+
+    $our.setUltCooldown(90);
+    update($our);
+
+    insert(new SuccessfulKill($t));
+    insert(new Recommendation("FC2",
+        "[Chain L2] Aggressive player type takes the risk and achieves a kill",
+        4,
+        Category.TRADE,
+        ActionState.FIGHTING));
+end
+
+rule "FC3 - After Kill Push Wave"
+salience 46
+when
+    $state : GameState(waveState == WaveState.PUSHED_TO_ENEMY_TOWER)
+
+    $sk    : SuccessfulKill()
+    $enemy : Champion(dead == true) from $state.enemyMid
+
+    not PushWaveOpportunity()
+then
+    retract($sk);
+
+    insert(new PushWaveOpportunity($state.getTimer()));
+
+    insert(new Recommendation("FC3",
+        "[Chain L3] Wave is pushed and enemy is dead, roam",
+        4,
+        Category.ROAM,
+        ActionState.ROAMING));
+    insert(new ForwardChainState(true));
+end
+
+rule "FC4 - Roam To Dragon"
+salience 44
+when
+    $state  : GameState(teamNearDragon >= 3, enemyBotHpPercent > 60)
+    $pwo    : PushWaveOpportunity()
+    $dragon : Dragon(timer <= 55) from $state.dragon
+then
+    retract($pwo);
+
+    insert(new Recommendation("FC4",
+        "[Chain L4] Roam window, dragon spawning soon, roam down",
+        4,
+        Category.DRAGON,
+        ActionState.FIGHTING));
+end

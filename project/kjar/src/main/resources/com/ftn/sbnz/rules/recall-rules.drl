@@ -1,13 +1,13 @@
-package com.lol.rules;
+package com.ftn.sbnz.rules;
 
-import com.lol.model.Champion;
-import com.lol.model.Champion.ChampionType;
-import com.lol.model.Champion.Position;
-import com.lol.model.GameState;
-import com.lol.model.GameState.WaveState;
-import com.lol.model.Recommendation;
-import com.lol.model.Recommendation.Category;
-import com.lol.model.Recommendation.ActionState;
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Champion.ChampionType;
+import com.ftn.sbnz.model.Position;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.GameState.WaveState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
 
 rule "P1 - Critical HP Recall"
     salience 50
@@ -58,8 +58,8 @@ rule "P5 - Dont Farm Tower Enemy Nearby"
     when
         $state : GameState(waveState == WaveState.PUSHED_TO_OUR_TOWER)
         $our   : Champion(hpPercent < 20) from $state.ourMid
-        $enemy : Champion(isDead == false,
-                          currentPosition == Champion.Position.MIDLANE) from $state.enemyMid
+        $enemy : Champion(dead == false,
+                          currentPosition == Position.MIDLANE) from $state.enemyMid
     then
         insert(new Recommendation("P5", "Wave is beneath our tower, your HP is critical and enemy is on the lane, do NOT farm, recall immediately!", 5,
             Category.RECALL, ActionState.RECALLING));

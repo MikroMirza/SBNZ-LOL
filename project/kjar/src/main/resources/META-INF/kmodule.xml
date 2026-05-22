@@ -1,2 +1,8 @@
-<kmodule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://jboss.org/kie/6.0.0/kmodule">
+
+
+
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+    <kbase name="LOLRules" packages="com.ftn.sbnz.rules">
+        <ksession name="LOLSession" type="stateful"/>
+    </kbase>
 </kmodule>

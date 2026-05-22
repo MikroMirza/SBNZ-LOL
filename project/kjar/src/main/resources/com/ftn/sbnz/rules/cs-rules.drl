@@ -1,12 +1,12 @@
-package com.lol.rules;
+package com.ftn.sbnz.rules;
 
-import com.lol.model.Champion;
-import com.lol.model.Champion.Position;
-import com.lol.model.GameState;
-import com.lol.model.GameState.WaveState;
-import com.lol.model.Recommendation;
-import com.lol.model.Recommendation.Category;
-import com.lol.model.Recommendation.ActionState;
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.Position;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.GameState.WaveState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.Recommendation.Category;
+import com.ftn.sbnz.model.ActionState;
 
 rule "CS1 - CS Below Average"
     salience 18

@@ -5,7 +5,6 @@ public class Champion extends Character {
  
     public enum PlayerType { AGGRESSIVE, BALANCED, PASSIVE }
     public enum ChampionType { MAGE, ASSASSIN, FIGHTER }
-    public enum Position { MIDLANE, ROAMED_BOT, ROAMED_TOP, NEAR_DRAGON, BASE, UNKNOWN }
  
     private float powerMult;
     private int cooldownInt;
@@ -20,7 +19,7 @@ public class Champion extends Character {
     private int kills;
     private int deaths;
     private int csScore;
-    private boolean isDead;
+    private boolean Dead;
     private int respawnTimer;
     private int ultCooldown;
     private Position currentPosition;
@@ -43,7 +42,7 @@ public class Champion extends Character {
         this.kills = 0;
         this.deaths = 0;
         this.csScore = 0;
-        this.isDead = false;
+        this.Dead = false;
         this.respawnTimer = 0;
         this.ultCooldown = 0;
         this.currentPosition = Position.MIDLANE;
@@ -51,15 +50,12 @@ public class Champion extends Character {
         this.lastSeenHp = 100;
     }
  
-    /** HP as percentage 0-100 for rule conditions */
     public int getHpPercent() { return getHp() / 10; }
     public void setHpPercent(int percent) { setHp(percent * 10); }
- 
-    /** Mana as percentage 0-100 for rule conditions */
+
     public int getManaPercent() { return (int)((getMana() / 500.0) * 100); }
     public void setManaPercent(int percent) { setMana((int)(percent / 100.0 * 500)); }
  
-    // --- Getters & Setters ---
  
     public float getPowerMult() { return powerMult; }
     public void setPowerMult(float powerMult) { this.powerMult = powerMult; }
@@ -97,8 +93,8 @@ public class Champion extends Character {
     public int getCsScore() { return csScore; }
     public void setCsScore(int csScore) { this.csScore = csScore; }
  
-    public boolean isDead() { return isDead; }
-    public void setDead(boolean dead) { isDead = dead; }
+    public boolean isDead() { return Dead; }
+    public void setDead(boolean dead) { Dead = dead; }
  
     public int getRespawnTimer() { return respawnTimer; }
     public void setRespawnTimer(int respawnTimer) { this.respawnTimer = respawnTimer; }
