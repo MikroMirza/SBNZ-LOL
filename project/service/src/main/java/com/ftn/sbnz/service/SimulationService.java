@@ -145,7 +145,7 @@ public class SimulationService {
         if (t == 420) {
             our.setLevel(6); enemy.setLevel(6);
             our.setUltCooldown(0);
-            System.out.println("\n[07:00] *** Both champions hit level 6 - ULTIMATES UNLOCKED ***\n");
+            System.out.println("\n[07:00] *** Both champions hit level 6 \n");
         }
 
         our.setPowerMult(1.0f + (our.getLevel() * 0.1f) + (float)(our.getGold() / 10000));
@@ -159,7 +159,7 @@ public class SimulationService {
         if (state.getDragon().getTimer() <= 0) {
             state.getDragon().setTimer(300);
             state.getDragon().setAlive(true);
-            System.out.printf("%n[%s] *** DRAGON SPAWNED ***%n%n", state.getFormattedTimer());
+            System.out.printf("%n[%s] DRAGON SPAWNED%n%n", state.getFormattedTimer());
         }
 
         if (t % 20 == 0 && random.nextInt(3) == 0) {
