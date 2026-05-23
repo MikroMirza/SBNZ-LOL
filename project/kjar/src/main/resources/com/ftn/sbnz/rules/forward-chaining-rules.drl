@@ -55,31 +55,17 @@ then
 end
 
 rule "FC2 - Aggressive Commits To Kill"
-salience 48
-no-loop true
-when
-    $ew    : EngageWindow()
-    $state : GameState($t : timer)
-    $our   : Champion(playerType == PlayerType.AGGRESSIVE) from $state.ourMid
-    $enemy : Champion() from $state.enemyMid
-
-    not SuccessfulKill()
-then
-    retract($ew);
-
-    $enemy.setDead(true);
-    $enemy.setHpPercent(0);
-    update($enemy);
-
-    $our.setUltCooldown(90);
-    update($our);
-
-    insert(new SuccessfulKill($t));
-    insert(new Recommendation("FC2",
-        "[Chain L2] Aggressive player type takes the risk and achieves a kill",
-        4,
-        Category.TRADE,
-        ActionState.FIGHTING));
+    salience 48
+    when
+        $state : GameState($t : timer)
+        $ew    : EngageWindow()
+        $our   : Champion(playerType == PlayerType.AGGRESSIVE) from $state.ourMid
+        not SuccessfulKill()
+    then
+        retract($ew);
+        insert(new SuccessfulKill($t));
+        insert(new Recommendation("FC2", "[Chain L2] Aggressive player commits and achieves a kill", 4,
+            Category.TRADE, ActionState.FIGHTING));
 end
 
 rule "FC3 - After Kill Push Wave"

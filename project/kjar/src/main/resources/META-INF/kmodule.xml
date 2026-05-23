@@ -1,8 +1,5 @@
-
-
-
 <kmodule xmlns="http://www.drools.org/xsd/kmodule">
-    <kbase name="LOLRules" packages="com.ftn.sbnz.rules">
-        <ksession name="LOLSession" type="stateful"/>
+    <kbase name="LOLRules" packages="com.ftn.sbnz.rules" eventProcessingMode="stream">
+        <ksession name="LOLSession" type="stateful" clockType="pseudo"/>
     </kbase>
 </kmodule>

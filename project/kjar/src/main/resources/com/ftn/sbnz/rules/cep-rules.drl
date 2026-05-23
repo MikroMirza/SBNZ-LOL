@@ -1,0 +1,133 @@
+package com.ftn.sbnz.rules;
+
+import com.ftn.sbnz.model.Champion;
+import com.ftn.sbnz.model.GameState;
+import com.ftn.sbnz.model.ActionState;
+import com.ftn.sbnz.model.GameState.WaveState;
+import com.ftn.sbnz.model.PlayerState;
+import com.ftn.sbnz.model.Recommendation;
+import com.ftn.sbnz.model.events.DamageEvent;
+import com.ftn.sbnz.model.events.JunglerSpottedEvent;
+import com.ftn.sbnz.model.events.LowHpEvent;
+import com.ftn.sbnz.model.events.EnemyGoneEvent;
+import com.ftn.sbnz.model.events.EnemyKilledMinionEvent;
+
+rule "CEP - Calculate Danger Score"
+    salience 60
+    no-loop true
+    timer (int: 240s 30s)
+    when
+        $state : GameState()
+        $our   : Champion() from $state.ourMid
+
+        $dmgCount : Number() from accumulate(
+            $e : DamageEvent(championId == "our")
+                 over window:time(30s)
+                 from entry-point "ChampionStream",
+            count($e)
+        )
+
+        $jgCount : Number() from accumulate(
+            $j : JunglerSpottedEvent()
+                 over window:time(20s)
+                 from entry-point "ChampionStream",
+            count($j)
+        )
+
+        $lowHpCount : Number() from accumulate(
+            $h : LowHpEvent(championId == "our")
+                 over window:time(60s)
+                 from entry-point "ChampionStream",
+            count($h)
+        )
+
+        $manaLow : Boolean() from ($our.getManaPercent() < 15)
+
+        $enemyGoneCount : Number() from accumulate(
+            $g : EnemyGoneEvent()
+                 over window:time(20s)
+                 from entry-point "ChampionStream",
+            count($g)
+        )
+
+        $wavePushed : Boolean() from ($state.getWaveState() == WaveState.PUSHED_TO_OUR_TOWER)
+
+        $dangerScore : Integer() from (
+            ($dmgCount.intValue() >= 3 ? 2 : 0) +
+            ($jgCount.intValue() >= 1  ? 3 : 0) +
+            ($lowHpCount.intValue() > 1 ? 2 : 0) +
+            ($manaLow ? 1 : 0) +
+            ($enemyGoneCount.intValue() >= 1 ? 2 : 0) +
+            ($wavePushed ? 1 : 0)
+        )
+    then
+        if ($dangerScore >= 8) {
+            insert(new Recommendation("CEP-D4",
+                "[CEP] Situacija kriticna (danger=" + $dangerScore + ") - RECALL!",
+                5, Recommendation.Category.RECALL, ActionState.RECALLING));
+        } else if ($dangerScore >= 6) {
+            insert(new Recommendation("CEP-D3",
+                "[CEP] Situacija opasna (danger=" + $dangerScore + ") - povuci se prema tornju",
+                4, Recommendation.Category.RECALL, ActionState.BACKING));
+        } else if ($dangerScore >= 3) {
+            insert(new Recommendation("CEP-D2",
+                "[CEP] Situacija rizicna (danger=" + $dangerScore + ") - igraj oprezno",
+                2, Recommendation.Category.TRADE, ActionState.LANING));
+        }
+end
+
+rule "CEP - Calculate Opportunity Score"
+    salience 55
+    no-loop true
+    timer (int: 20s 5s)
+    when
+        $state : GameState()
+        $our   : Champion() from $state.ourMid
+        $enemy : Champion() from $state.enemyMid
+
+        $enemyLowHpCount : Number() from accumulate(
+            $h : LowHpEvent(championId == "enemy")
+                 over window:time(10s)
+                 from entry-point "ChampionStream",
+            count($h)
+        )
+
+        $enemyCdLong : Boolean() from ($enemy.getCooldownInt() > 4)
+
+        $enemyDeadCount : Number() from accumulate(
+            $d : DamageEvent(championId == "enemy_dead")
+                 over window:time(30s)
+                 from entry-point "ChampionStream",
+            count($d)
+        )
+
+        $enemyNoCs : Number() from accumulate(
+            $m : EnemyKilledMinionEvent()
+                 over window:time(45s)
+                 from entry-point "ChampionStream",
+            count($m)
+        )
+
+        $opportunityScore : Integer() from (
+            ($enemyLowHpCount.intValue() >= 1 ? 2 : 0) +
+            ($enemy.getManaPercent() < 20 ? 2 : 0) +
+            ($enemyCdLong ? 1 : 0) +
+            ($our.getUltCooldown() == 0 && $our.getLevel() >= 6 ? 3 : 0) +
+            ($enemyDeadCount.intValue() >= 1 ? 3 : 0) +
+            ($enemyNoCs.intValue() == 0 ? 1 : 0)
+        )
+    then
+        if ($opportunityScore >= 9) {
+            insert(new Recommendation("CEP-O4",
+                "[CEP] Odlicna prilika (opportunity=" + $opportunityScore + ") - contest kill ili roam!",
+                4, Recommendation.Category.TRADE, ActionState.FIGHTING));
+        } else if ($opportunityScore >= 6) {
+            insert(new Recommendation("CEP-O3",
+                "[CEP] Dobra prilika (opportunity=" + $opportunityScore + ") - pokreni trade ili roam",
+                3, Recommendation.Category.TRADE, ActionState.FIGHTING));
+        } else if ($opportunityScore >= 3) {
+            insert(new Recommendation("CEP-O2",
+                "[CEP] Moguca prilika (opportunity=" + $opportunityScore + ") - razmotri mogucnosti",
+                2, Recommendation.Category.TRADE, ActionState.LANING));
+        }
+end

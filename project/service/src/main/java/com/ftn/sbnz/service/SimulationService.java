@@ -16,12 +16,15 @@ public class SimulationService {
     private static final int TICK_INTERVAL = 5;
 
     private final RuleEngineService ruleEngine;
+    private final CEPSessionService cepService;
     private final Random random = new Random();
+    private final KieContainer kieContainer;
 
     public SimulationService(KieContainer kieContainer) {
+        this.kieContainer = kieContainer;
         this.ruleEngine = new RuleEngineService(kieContainer);
+        this.cepService = new CEPSessionService(kieContainer);
     }
-
     public void runForwardChainingTest() {
     	System.out.println("Setting up scenario to trigger FC1 -> FC2 -> FC3 -> FC4\n");
 
@@ -47,7 +50,7 @@ public class SimulationService {
         GameState state = new GameState(ourMid, enemyMid, enemyJungler, enemySupport);
         state.setTimer(450);
         state.setWaveState(WaveState.PUSHED_TO_ENEMY_TOWER);
-        state.getDragon().setTimer(50);
+        state.getDragon().setTimer(100);
         state.setTeamNearDragon(3);
         state.setEnemyBotHpPercent(65);
 
@@ -107,20 +110,27 @@ public class SimulationService {
 
             if (t % TICK_INTERVAL == 0) {
                 Recommendation top = ruleEngine.getTopRecommendation(state, playerState);
-
                 if (top != null) {
                     boolean transitioned = playerState.tryTransition(
                         top.getSuggestedAction(), top.getPriority()
                     );
-
                     if (transitioned || top.getPriority() >= 3) {
                         System.out.printf("[%s] [P%d] %s%n",
                             state.getFormattedTimer(), top.getPriority(), top.getMessage());
                         log.add(top);
                     }
                 }
+
+                List<Recommendation> cepResults = this.cepService.processTick(state, TICK_INTERVAL);
+                cepResults.forEach(r -> {
+                    System.out.printf("[CEP][%s] [P%d] %s%n",
+                        state.getFormattedTimer(), r.getPriority(), r.getMessage());
+                    log.add(r);
+                });
             }
         }
+
+        this.cepService.close();
 
         printFinalReport(ourMid, enemyMid, log);
     }
@@ -234,7 +244,7 @@ public class SimulationService {
 
         System.out.println("\nTop recommendations fired during game:");
         log.stream()
-            .filter(r -> r.getPriority() >= 3)
+            .filter(r -> r.getPriority() >= 2)
             .limit(10)
             .forEach(r -> System.out.printf("  [P%d][%s] %s%n",
                 r.getPriority(), r.getCategory(), r.getMessage()));

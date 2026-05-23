@@ -15,7 +15,7 @@ public class ServiceApplication {
         	    KieServices.Factory.get().getKieClasspathContainer();
 
         SimulationService simulation = new SimulationService(kContainer);
-        simulation.runForwardChainingTest();
+        simulation.runSimulation();
     }
 
     @Bean
